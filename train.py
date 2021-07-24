@@ -53,7 +53,7 @@ class Train():
 
                 # train a batch of images
                 for ind in range(self.batch_size):
-                    print("index is ", ind)
+                    #print("index is ", ind)
                     self.train_one_img(label_img[ind], txt_data[ind], width, height)
 
     def train_one_img(self, label_img, txt_data, width, height):
@@ -67,7 +67,8 @@ class Train():
                                         torch.tensor([y])))
 
                 #print("txt_data is", txt_data)
-                #print("label_img is", label_img.size())
+                print("label_img size is", label_img.size())
+                print("label_img is", label_img)
                 #print("the input data is", input_data)
                 #print("The x tensor is", torch.tensor([x]))
                 #print("The y tensor is", torch.tensor([y]))
@@ -75,6 +76,7 @@ class Train():
                 #ground_truth = label_img[0][y][x]
                 #ground_truth = label_img[0][int((y+1)*256/2)][int((x+1)*256/2)]
                 ground_truth = label_img[int((y + 1) * 256 / 2)][int((x + 1) * 256 / 2)]
+
 
                 input_data, ground_truth = self.prepare(input_data, ground_truth)
 
