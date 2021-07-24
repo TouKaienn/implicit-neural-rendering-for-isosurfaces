@@ -21,8 +21,8 @@ class Train():
         self.epochs = 1
         self.time = time.time()
         #############################
-        data = TrainDataset(text_path='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt',
-                            img_root_path='.\\tiny_vorts0008_normalize_dataset')
+        data = TrainDataset(text_path=config.input_txt,
+                            img_root_path=config.input_image)
         self.dataloader = DataLoader(data, batch_size=3, pin_memory=True, num_workers=0)
         if not os.path.exists('.\\net.pkl'):
             self.net = Siren(in_features=5, out_features=3, hidden_features=50,
@@ -42,7 +42,6 @@ class Train():
 
             for step, data in enumerate(self.dataloader):
                 txt_data, label_img = data
-                print("step is", step)
                 print("txt_data is", txt_data)
                 print("label_img is", label_img.size())
                 height, width = label_img.shape[1], label_img.shape[2]
@@ -99,8 +98,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--input_image', type=str,
-                        default=".\\tiny_vorts0008_normalize_dataset\\vorts0008_render_001.png")
-    parser.add_argument('--input_txt', type=str, default=".\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt")
+                        default='.\\tiny_vorts0008_normalize_dataset')
+    parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=256)  # the paper uses 256 for this one
     parser.add_argument('--other_dim', type=int, default=3)
     config = parser.parse_args()
