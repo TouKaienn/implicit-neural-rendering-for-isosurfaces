@@ -12,10 +12,12 @@ import time
 from datetime import datetime
 import numpy as np
 from loss_comp import *
-
+import warnings
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+warnings.filterwarnings("ignore")#ignore the warning message for testing program easily
 
 
 class Train():
@@ -27,11 +29,13 @@ class Train():
         data = TrainDataset(text_path=config.input_txt,
                             img_root_path=config.input_image)
         self.dataloader = DataLoader(data, batch_size=self.batch_size, pin_memory=True, num_workers=0)
+
         if not os.path.exists('.\\net.pkl'):
             self.net = Siren(in_features=5, out_features=3, hidden_features=50,
                              hidden_layers=3, outermost_linear=True)
         else:
             self.load_model()
+
         self.net.to(device=device)
         self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
@@ -41,7 +45,7 @@ class Train():
         print("Start Training:")
         for epoch in range(self.epochs):
 
-            self.epoch = epoch
+            self.epoch_now = epoch
 
             for _, data in enumerate(self.dataloader):
                 txt_data, label_img = data
@@ -83,6 +87,7 @@ class Train():
                 # output here is not image. It is the (R,G,B) value in a specific pixel
                 output, coords = self.net(input_data)
 
+
                 # the MSE loss
                 self.loss = self.loss_fuc(output, ground_truth)
 
@@ -91,7 +96,7 @@ class Train():
                 output_image.append(output)
 
                 # visualize images
-                self.visualize_model(output_image, coords)
+                self.visualize_model(output_image, coords)#TODO:creating and using a test objects, this one need to change a position
 
                 self.optimizer.zero_grad()
                 self.loss.backward()
@@ -105,7 +110,7 @@ class Train():
     def write_log(self, loss):
         with open(f'log{datetime.now().strftime("%m%d")}.txt', 'a') as f:
             f.write(
-                f'epoch:{self.epoch}, time:{datetime.now().strftime("%m/%d_%H:%M:%S")}, loss:{loss},  '
+                f'epoch:{self.epoch_now}, time:{datetime.now().strftime("%m/%d_%H:%M:%S")}, loss:{loss},  '
                 f'time_consuming:{time.time() - self.time:.2f}s\n')
         self.time = time.time()
 
@@ -136,7 +141,7 @@ class Train():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()#TODO: creating a config files to manipulate those configs easily
 
     parser.add_argument('--input_image', type=str,
                         default='.\\tiny_vorts0008_normalize_dataset')
