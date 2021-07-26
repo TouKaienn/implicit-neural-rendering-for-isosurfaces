@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 import numpy as np
 from loss_comp import *
-
+import sys
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -25,8 +25,9 @@ class Train():
         self.batch_size = config.batch_size
         #############################
         data = TrainDataset(text_path=config.input_txt,
-                            img_root_path=config.input_image)
-        self.dataloader = DataLoader(data, batch_size=self.batch_size, pin_memory=True, num_workers=0)
+                            img_root_path=config.input_image,
+                            side_length=config.output_shape)
+        self.dataloader = DataLoader(data, batch_size=self.batch_size)
         if not os.path.exists('.\\net.pkl'):
             self.net = Siren(in_features=5, out_features=3, hidden_features=50,
                              hidden_layers=3, outermost_linear=True)
@@ -53,10 +54,11 @@ class Train():
 
                 # train a batch of images
                 for ind in range(self.batch_size):
-                    #print("index is ", ind)
                     self.train_one_img(label_img[ind], txt_data[ind], width, height)
 
     def train_one_img(self, label_img, txt_data, width, height):
+
+        output_image = []
 
         for x in tqdm(np.linspace(-1, 1, width)): # x = (-1) + (2/width) * N -> N = (x+1)*256/2
 
@@ -67,35 +69,41 @@ class Train():
                                         torch.tensor([y])))
 
                 #print("txt_data is", txt_data)
-                print("label_img size is", label_img.size())
-                print("label_img is", label_img)
-                #print("the input data is", input_data)
+                #print("label_img size is", label_img.size())
+                #print("label_img is", label_img)
+                print("the input data is", input_data)
                 #print("The x tensor is", torch.tensor([x]))
                 #print("The y tensor is", torch.tensor([y]))
 
                 #ground_truth = label_img[0][y][x]
                 #ground_truth = label_img[0][int((y+1)*256/2)][int((x+1)*256/2)]
                 ground_truth = label_img[int((y + 1) * 256 / 2)][int((x + 1) * 256 / 2)]
-
+                print("the GT is", ground_truth)
 
                 input_data, ground_truth = self.prepare(input_data, ground_truth)
 
                 # output here is not image. It is the (R,G,B) value in a specific pixel
                 output, coords = self.net(input_data)
 
+                print("the output is", output)
+                print("the coords is", coords)
+                print("the output shape is", output.size())
+                print("the coords shape is", coords.size())
+
+                sys.exit()
+
                 # the MSE loss
                 self.loss = self.loss_fuc(output, ground_truth)
 
                 # (CHANGE THIS ONE!!!) append rgb vectors to image
-                output_image = []
                 output_image.append(output)
-
-                # visualize images
-                self.visualize_model(output_image, coords)
 
                 self.optimizer.zero_grad()
                 self.loss.backward()
                 self.optimizer.step()
+
+            # visualize images
+            #self.visualize_model(output_image, coords)
 
             self.save_model()  # !记得删了
             self.write_log(self.loss)
@@ -116,15 +124,13 @@ class Train():
 
     def visualize_model(self, output, coords):
 
-        print("output is", output)
-        print("coords is", coords)
-
-        img_grad = gradient(output, coords)
-        img_laplacian = laplace(output, coords)
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-        axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        #img_grad = gradient(output, coords)
+        #img_laplacian = laplace(output, coords)
+        fig, axes = plt.subplots(1, 1, figsize=(6, 6))
+        axes.imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        #axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        #axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        #axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
         plt.show()
         plt.close()
 
@@ -143,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=256)  # the paper uses 256 for this one
     parser.add_argument('--other_dim', type=int, default=3)
-    parser.add_argument('--batch_size', type = int, default=2)
+    parser.add_argument('--batch_size', type = int, default=1)
     config = parser.parse_args()
 
     train = Train(config)
