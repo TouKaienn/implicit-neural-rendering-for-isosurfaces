@@ -9,15 +9,21 @@ from torch.nn import MSELoss
 
 
 class TrainDataset(Dataset):
-    def __init__(self, img_root_path, text_path):
+    def __init__(self, img_root_path, text_path, side_length):
         self.img_root_path = img_root_path
         self.text_path = text_path
         self.img_path = self.__CollectFilePath()
         self.all_txt_data = self.__GetTextValue()
+        self.transform = Compose([
+                        Resize(side_length),
+                        ToTensor(),
+                        Normalize(torch.Tensor([0.5]), torch.Tensor([0.5]))
+                        ])
 
     def __getitem__(self, idx):
         # read img:
-        label_img = np.array(Image.open(self.img_path[idx]))
+        label_img = np.array(self.transform(Image.open(self.img_path[idx])))
+        #print("the type of label images is", type(label_img))
         # return input label
         return self.all_txt_data[idx], label_img
 
@@ -62,7 +68,8 @@ if __name__ == "__main__":
 
     dataset = TrainDataset(
         text_path='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt',
-        img_root_path='.\\tiny_vorts0008_normalize_dataset')
+        img_root_path='.\\tiny_vorts0008_normalize_dataset',
+        side_length=256)
 
     data = DataLoader(dataset, batch_size=2)
 
