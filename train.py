@@ -159,8 +159,11 @@ class Train():
         output, _ = self.net(input_data)
 
         #print("the output is", output)
-        print("the output shape is", output.size())
+        #print("the output shape is", output.size())
 
+        # permute the output
+        output = output.permute(2, 0, 1)
+        print("the output shape after permute is", output.size())
 
         # the MSE loss
         self.loss = self.loss_fuc(output, ground_truth)
@@ -172,11 +175,9 @@ class Train():
         self.save_model()  # !记得删了
         self.write_log(self.loss)
 
-    # visualize images
-    #self.visualize_model(output_image, coords)
-
-
-
+        # visualize images
+        
+        self.visualize_model(output)
 
 
     def write_log(self, loss):
@@ -191,12 +192,12 @@ class Train():
         if len(args) > 1:
             return (a.float().to(device) for a in args)
 
-    def visualize_model(self, output, coords):
+    def visualize_model(self, output):
 
         #img_grad = gradient(output, coords)
         #img_laplacian = laplace(output, coords)
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
-        axes.imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        axes.imshow(output.cpu().detach().numpy().transpose(1,2,0))
         #axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
