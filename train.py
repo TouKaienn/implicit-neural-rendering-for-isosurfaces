@@ -126,8 +126,7 @@ class Train():
                 for ind in range(self.batch_size):
                     self.train_one_img(label_img[ind], txt_data[ind], length) # ind indicates a specific image inside the batch
 
-                    # visualize images
-                    self.visualize(label_img[ind])
+
 
 
     def train_one_img(self, label_img, txt_data, length):
@@ -179,8 +178,7 @@ class Train():
         self.save_model()  # !记得删了
         self.write_log(self.loss)
 
-
-
+        self.visualize(output)
 
     def write_log(self, loss):
         with open(f'log{datetime.now().strftime("%m%d")}.txt', 'a') as f:
@@ -203,8 +201,6 @@ class Train():
         #axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        plt.show()
-        plt.close()
 
     def save_model(self):
         torch.save(self.net, 'net.pkl')
