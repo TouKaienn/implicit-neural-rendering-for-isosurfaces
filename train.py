@@ -126,6 +126,10 @@ class Train():
                 for ind in range(self.batch_size):
                     self.train_one_img(label_img[ind], txt_data[ind], length) # ind indicates a specific image inside the batch
 
+                    # visualize images
+                    self.visualize(label_img[ind])
+
+
     def train_one_img(self, label_img, txt_data, length):
 
         # obtain three values (isovalue, alpha, beta)
@@ -175,9 +179,7 @@ class Train():
         self.save_model()  # !记得删了
         self.write_log(self.loss)
 
-        # visualize images
-        
-        self.visualize_model(output)
+
 
 
     def write_log(self, loss):
@@ -192,7 +194,7 @@ class Train():
         if len(args) > 1:
             return (a.float().to(device) for a in args)
 
-    def visualize_model(self, output):
+    def visualize(self, output):
 
         #img_grad = gradient(output, coords)
         #img_laplacian = laplace(output, coords)
@@ -219,7 +221,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=256)  # the paper uses 256 for this one
     parser.add_argument('--other_dim', type=int, default=3)
-    parser.add_argument('--batch_size', type = int, default=1)
+    parser.add_argument('--batch_size', type = int, default=2)
     config = parser.parse_args()
 
     train = Train(config)
