@@ -38,6 +38,70 @@ class Train():
         self.loss_fuc = MSELoss()
         self.loss = None
 
+    # matrix for x values
+    def matrix_x(self, length):
+        # create 2d matrix
+        matrix = torch.zeros([length, length, 1])
+
+        # init tmp value and step number
+        tmp = -1
+        step_num = length * length - 1
+
+        # assign value (-1 to 1, by row and then by col)
+        for i in range(length):
+            for j in range(length):
+                matrix[i][j] = tmp
+                tmp += 2 / step_num
+
+        # return matrix
+        return matrix
+
+    # matrix for y values
+    def matrix_y(self, length):
+        # create 2d matrix
+        matrix = torch.zeros([length, length, 1])
+
+        # init tmp value and step number
+        tmp = -1
+        step_num = length * length - 1
+
+        # assign value (-1 to 1, by row and then by col)
+        for i in range(length):
+            for j in range(length):
+                matrix[j][i] = tmp
+                tmp += 2 / step_num
+
+        # return matrix
+        return matrix
+
+    # matrix for x and y values
+    def matrix_x_y(self, length):
+        return self.concat_matrix_2(self.matrix_x(length), self.matrix_y(length))
+
+    def matrix_single_txt(self, length, v):
+        # create 2d matrix
+        matrix = torch.zeros([length, length, 1])
+
+        # add v as value
+        matrix = torch.add(matrix, v)
+
+        # return matrix
+        return matrix
+
+    def matrix_txt(self, length, v1, v2, v3):
+        return self.concat_matrix_3(self.matrix_single_txt(length, v1),
+                                    self.matrix_single_txt(length, v2),
+                                    self.matrix_single_txt(length, v3))
+
+    def concat_matrix_2(self, a, b):
+        res = torch.cat((a, b), dim=-1)
+        return res
+
+    def concat_matrix_3(self, a, b, c):
+        res = torch.cat((a, b, c), dim=-1)
+        return res
+
+
     def train(self):
         print("Start Training:")
         for epoch in range(self.epochs):
@@ -49,66 +113,72 @@ class Train():
 
                 # Concat by row, and then reshape txt to have col of 3
                 txt_data = torch.cat(txt_data, dim=0).reshape(-1, 3)
+                print("txt_data is", txt_data)
 
-                height, width = label_img.shape[1], label_img.shape[2]
+                height, width = label_img.shape[-1], label_img.shape[-1]
+                #print("label image is", label_img.size())
+                #print("txt_data.size is", txt_data.size())
+
+                assert height == width
+                length = height or width
 
                 # train a batch of images
                 for ind in range(self.batch_size):
-                    self.train_one_img(label_img[ind], txt_data[ind], width, height)
-
-    def train_one_img(self, label_img, txt_data, width, height):
-
-        output_image = []
-
-        for x in tqdm(np.linspace(-1, 1, width)): # x = (-1) + (2/width) * N -> N = (x+1)*256/2
-
-            for y in np.linspace(-1, 1, height): # N = (y+1)*256/2
-
-                input_data = torch.cat((txt_data,
-                                        torch.tensor([x]),
-                                        torch.tensor([y])))
-
-                #print("txt_data is", txt_data)
-                #print("label_img size is", label_img.size())
-                #print("label_img is", label_img)
-                print("the input data is", input_data)
-                #print("The x tensor is", torch.tensor([x]))
-                #print("The y tensor is", torch.tensor([y]))
-
-                #ground_truth = label_img[0][y][x]
-                #ground_truth = label_img[0][int((y+1)*256/2)][int((x+1)*256/2)]
-                ground_truth = label_img[int((y + 1) * 256 / 2)][int((x + 1) * 256 / 2)]
-                print("the GT is", ground_truth)
-
-                input_data, ground_truth = self.prepare(input_data, ground_truth)
-
-                # output here is not image. It is the (R,G,B) value in a specific pixel
-                output, coords = self.net(input_data)
-
-                print("the output is", output)
-                print("the coords is", coords)
-                print("the output shape is", output.size())
-                print("the coords shape is", coords.size())
-
-                sys.exit()
-
-                # the MSE loss
-                self.loss = self.loss_fuc(output, ground_truth)
-
-                # (CHANGE THIS ONE!!!) append rgb vectors to image
-                output_image.append(output)
-
-                self.optimizer.zero_grad()
-                self.loss.backward()
-                self.optimizer.step()
-
-            # visualize images
-            #self.visualize_model(output_image, coords)
-
-            self.save_model()  # !记得删了
-            self.write_log(self.loss)
+                    self.train_one_img(label_img[ind], txt_data[ind], length) # ind indicates a specific image inside the batch
 
 
+
+
+    def train_one_img(self, label_img, txt_data, length):
+
+        # obtain three values (isovalue, alpha, beta)
+        v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
+        #print("v1 is", v1)
+        #print("v2 is", v2)
+        #print("v3 is", v3)
+
+        # concate matrix to obtain input data
+        input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
+        print("the input data size is", input_data.size())
+        #input_data = torch.cat((txt_data,torch.tensor([x]),torch.tensor([y])))
+
+        #print("txt_data is", txt_data)
+        #print("label_img size is", label_img.size())
+        #print("the input data is", input_data)
+        #print("The x tensor is", torch.tensor([x]))
+        #print("The y tensor is", torch.tensor([y]))
+
+        #ground_truth = label_img[0][y][x]
+        #ground_truth = label_img[0][int((y+1)*256/2)][int((x+1)*256/2)]
+
+        #ground_truth = label_img[int((y + 1) * 256 / 2)][int((x + 1) * 256 / 2)]
+
+        ground_truth = label_img
+        print("the GT size is", ground_truth.size())
+
+        input_data, ground_truth = self.prepare(input_data, ground_truth)
+
+        # output here is not image. It is the (R,G,B) value in a specific pixel
+        output, _ = self.net(input_data)
+
+        #print("the output is", output)
+        #print("the output shape is", output.size())
+
+        # permute the output
+        output = output.permute(2, 0, 1)
+        print("the output shape after permute is", output.size())
+
+        # the MSE loss
+        self.loss = self.loss_fuc(output, ground_truth)
+
+        self.optimizer.zero_grad()
+        self.loss.backward()
+        self.optimizer.step()
+
+        self.save_model()  # !记得删了
+        self.write_log(self.loss)
+
+        self.visualize(output)
 
     def write_log(self, loss):
         with open(f'log{datetime.now().strftime("%m%d")}.txt', 'a') as f:
@@ -122,17 +192,15 @@ class Train():
         if len(args) > 1:
             return (a.float().to(device) for a in args)
 
-    def visualize_model(self, output, coords):
+    def visualize(self, output):
 
         #img_grad = gradient(output, coords)
         #img_laplacian = laplace(output, coords)
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
-        axes.imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        axes.imshow(output.cpu().detach().numpy().transpose(1,2,0))
         #axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
         #axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        plt.show()
-        plt.close()
 
     def save_model(self):
         torch.save(self.net, 'net.pkl')
