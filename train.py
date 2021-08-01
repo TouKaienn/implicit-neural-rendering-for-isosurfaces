@@ -127,42 +127,30 @@ class Train():
                     self.train_one_img(label_img[ind], txt_data[ind], length) # ind indicates a specific image inside the batch
 
 
-
-
     def train_one_img(self, label_img, txt_data, length):
 
         # obtain three values (isovalue, alpha, beta)
         v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
-        #print("v1 is", v1)
-        #print("v2 is", v2)
-        #print("v3 is", v3)
+
 
         # concate matrix to obtain input data
         input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
         print("the input data size is", input_data.size())
-        #input_data = torch.cat((txt_data,torch.tensor([x]),torch.tensor([y])))
 
-        #print("txt_data is", txt_data)
-        #print("label_img size is", label_img.size())
-        #print("the input data is", input_data)
-        #print("The x tensor is", torch.tensor([x]))
-        #print("The y tensor is", torch.tensor([y]))
-
-        #ground_truth = label_img[0][y][x]
-        #ground_truth = label_img[0][int((y+1)*256/2)][int((x+1)*256/2)]
-
-        #ground_truth = label_img[int((y + 1) * 256 / 2)][int((x + 1) * 256 / 2)]
 
         ground_truth = label_img
         print("the GT size is", ground_truth.size())
 
+        print("input data size", input_data.size())
+        print("input data ", input_data)
         input_data, ground_truth = self.prepare(input_data, ground_truth)
 
         # output here is not image. It is the (R,G,B) value in a specific pixel
+        print("input data size after pre", input_data.size())
+        print("input data after pre", input_data)
+
         output, _ = self.net(input_data)
 
-        #print("the output is", output)
-        #print("the output shape is", output.size())
 
         # permute the output
         output = output.permute(2, 0, 1)
@@ -175,7 +163,7 @@ class Train():
         self.loss.backward()
         self.optimizer.step()
 
-        self.save_model()  # !记得删了
+        self.save_model()  # This one is optional 
         self.write_log(self.loss)
 
         self.visualize(output)
@@ -193,14 +181,11 @@ class Train():
             return (a.float().to(device) for a in args)
 
     def visualize(self, output):
-
-        #img_grad = gradient(output, coords)
-        #img_laplacian = laplace(output, coords)
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
         axes.imshow(output.cpu().detach().numpy().transpose(1,2,0))
-        #axes[0].imshow(output.cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        #axes[1].imshow(img_grad.norm(dim=-1).cpu().view(config.output_shape, config.output_shape).detach().numpy())
-        #axes[2].imshow(img_laplacian.cpu().view(config.output_shape, config.output_shape).detach().numpy())
+        plt.show()
+        plt.close()
+
 
     def save_model(self):
         torch.save(self.net, 'net.pkl')
@@ -215,12 +200,10 @@ if __name__ == "__main__":
     parser.add_argument('--input_image', type=str,
                         default='.\\tiny_vorts0008_normalize_dataset')
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
-    parser.add_argument('--output_shape', type=int, default=256)  # the paper uses 256 for this one
+    parser.add_argument('--output_shape', type=int, default=512)  # the paper uses 256 for this one
     parser.add_argument('--other_dim', type=int, default=3)
     parser.add_argument('--batch_size', type = int, default=1)
     config = parser.parse_args()
 
     train = Train(config)
     train.train()
-
-    # print(datetime.now().strftime("%m/%d_%H:%M"))
