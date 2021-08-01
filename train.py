@@ -16,7 +16,7 @@ import sys
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+print(device)
 
 class Train():
     def __init__(self, config):
@@ -41,7 +41,7 @@ class Train():
     # matrix for x values
     def matrix_x(self, length):
         # create 2d matrix
-        matrix = torch.zeros([length, length, 1])
+        matrix = torch.zeros([length, length, 1]).to(device)
 
         # init tmp value and step number
         tmp = -1
@@ -59,7 +59,7 @@ class Train():
     # matrix for y values
     def matrix_y(self, length):
         # create 2d matrix
-        matrix = torch.zeros([length, length, 1])
+        matrix = torch.zeros([length, length, 1]).to(device)
 
         # init tmp value and step number
         tmp = -1
@@ -80,7 +80,7 @@ class Train():
 
     def matrix_single_txt(self, length, v):
         # create 2d matrix
-        matrix = torch.zeros([length, length, 1])
+        matrix = torch.zeros([length, length, 1]).to(device)
 
         # add v as value
         matrix = torch.add(matrix, v)
@@ -112,8 +112,9 @@ class Train():
                 txt_data, label_img = data
 
                 # Concat by row, and then reshape txt to have col of 3
-                txt_data = torch.cat(txt_data, dim=0).reshape(-1, 3)
-                print("txt_data is", txt_data)
+                txt_data = torch.cat(txt_data, dim=0).reshape(3, -1)
+                txt_data = torch.transpose(txt_data, 0, 1)
+                print("txt data is", txt_data)
 
                 height, width = label_img.shape[-1], label_img.shape[-1]
                 #print("label image is", label_img.size())
@@ -135,26 +136,26 @@ class Train():
 
         # concate matrix to obtain input data
         input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
-        print("the input data size is", input_data.size())
+        #print("the input data size is", input_data.size())
 
 
         ground_truth = label_img
-        print("the GT size is", ground_truth.size())
+        #print("the GT size is", ground_truth.size())
 
-        print("input data size", input_data.size())
-        print("input data ", input_data)
+        #print("input data size", input_data.size())
+        #print("input data ", input_data)
         input_data, ground_truth = self.prepare(input_data, ground_truth)
 
         # output here is not image. It is the (R,G,B) value in a specific pixel
-        print("input data size after pre", input_data.size())
-        print("input data after pre", input_data)
+        #print("input data size after pre", input_data.size())
+        #print("input data after pre", input_data)
 
         output, _ = self.net(input_data)
 
 
         # permute the output
         output = output.permute(2, 0, 1)
-        print("the output shape after permute is", output.size())
+        #print("the output shape after permute is", output.size())
 
         # the MSE loss
         self.loss = self.loss_fuc(output, ground_truth)
@@ -163,7 +164,7 @@ class Train():
         self.loss.backward()
         self.optimizer.step()
 
-        self.save_model()  # This one is optional 
+        self.save_model()  # This one is optional
         self.write_log(self.loss)
 
         self.visualize(output)
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=512)  # the paper uses 256 for this one
     parser.add_argument('--other_dim', type=int, default=3)
-    parser.add_argument('--batch_size', type = int, default=2)
+    parser.add_argument('--batch_size', type = int, default=4)
     config = parser.parse_args()
 
     train = Train(config)
