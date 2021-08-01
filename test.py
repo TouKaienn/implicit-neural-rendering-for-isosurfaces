@@ -16,9 +16,9 @@ import sys
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
 
-class Train():
+
+class Test():
     def __init__(self, config):
         self.epochs = 1
         self.time = time.time()
@@ -28,16 +28,11 @@ class Train():
                             img_root_path=config.input_image,
                             side_length=config.output_shape)
         self.dataloader = DataLoader(data, batch_size=self.batch_size)
-        if not os.path.exists('.\\net.pkl'):
-            self.net = Siren(in_features=5, out_features=3, hidden_features=50,
-                             hidden_layers=3, outermost_linear=True)
-        else:
-            self.load_model()
+        self.net = torch.load('.\\net.pkl', map_location=device)
         self.net.to(device=device)
-        self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
+        #self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
-
     # matrix for x values
     def matrix_x(self, length):
         # create 2d matrix
@@ -46,7 +41,6 @@ class Train():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
-
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -64,7 +58,6 @@ class Train():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
-
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -102,77 +95,58 @@ class Train():
         return res
 
 
-    def train(self):
-        print("Start Training:")
-        for epoch in range(self.epochs):
+    def test(self):
+        print("Start Testing:")
 
-            self.epoch = epoch
+        for _, data in enumerate(self.dataloader):
+            txt_data, label_img = data
 
-            for _, data in enumerate(self.dataloader):
-                txt_data, label_img = data
+            # Concat by row, and then reshape txt to have row of 3
+            txt_data = torch.cat(txt_data, dim=0).reshape(3, -1)
 
-                # Concat by row, and then reshape txt to have col of 3
-                txt_data = torch.cat(txt_data, dim=0).reshape(3, -1)
-                txt_data = torch.transpose(txt_data, 0, 1)
-                print("txt data is", txt_data)
+            # transpose row and col
+            txt_data = torch.transpose(txt_data, 0, 1)
 
-                height, width = label_img.shape[-1], label_img.shape[-1]
-                #print("label image is", label_img.size())
-                #print("txt_data.size is", txt_data.size())
+            height, width = label_img.shape[-1], label_img.shape[-1]
 
-                assert height == width
-                length = height or width
+            assert height == width
+            length = height or width
 
-                # train a batch of images
-                for ind in range(self.batch_size):
-                    self.train_one_img(label_img[ind], txt_data[ind], length) # ind indicates a specific image inside the batch
+            # train a batch of images
+            for ind in range(self.batch_size):
+                self.test_one_img(label_img[ind], txt_data[ind], length)
 
 
-    def train_one_img(self, label_img, txt_data, length):
+    def test_one_img(self, label_img, txt_data, length):
 
-        # obtain three values (isovalue, alpha, beta)
-        v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
+        with torch.no_grad():
+            # obtain three values (isovalue, alpha, beta)
+            v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
 
+            # concate matrix to obtain input data
+            input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
 
-        # concate matrix to obtain input data
-        input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
-        #print("the input data size is", input_data.size())
+            # prepare input and GT
+            ground_truth = label_img
 
+            input_data, ground_truth = self.prepare(input_data, ground_truth)
 
-        ground_truth = label_img
-        #print("the GT size is", ground_truth.size())
+            # obtain output from model
+            output, _ = self.net(input_data)
 
-        #print("input data size", input_data.size())
-        #print("input data ", input_data)
-        input_data, ground_truth = self.prepare(input_data, ground_truth)
+            # permute the output
+            output = output.permute(2, 0, 1)
 
-        # output here is not image. It is the (R,G,B) value in a specific pixel
-        #print("input data size after pre", input_data.size())
-        #print("input data after pre", input_data)
+            # the MSE loss
+            self.loss = self.loss_fuc(output, ground_truth)
+            print("loss is", self.loss)
 
-        output, _ = self.net(input_data)
-
-
-        # permute the output
-        output = output.permute(2, 0, 1)
-        #print("the output shape after permute is", output.size())
-
-        # the MSE loss
-        self.loss = self.loss_fuc(output, ground_truth)
-
-        self.optimizer.zero_grad()
-        self.loss.backward()
-        self.optimizer.step()
-
-        self.save_model()  # This one is optional
-        self.write_log(self.loss)
-
-        self.visualize(output)
+            self.visualize(output)
 
     def write_log(self, loss):
         with open(f'log{datetime.now().strftime("%m%d")}.txt', 'a') as f:
             f.write(
-                f'epoch:{self.epoch}, time:{datetime.now().strftime("%m/%d_%H:%M:%S")}, loss:{loss},  '
+                f'time:{datetime.now().strftime("%m/%d_%H:%M:%S")}, loss:{loss},  '
                 f'time_consuming:{time.time() - self.time:.2f}s\n')
         self.time = time.time()
 
@@ -183,16 +157,14 @@ class Train():
 
     def visualize(self, output):
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
+        #print("output is", output)
         axes.imshow(output.cpu().detach().numpy().transpose(1,2,0))
-        plt.show()
-        plt.close()
+        #print("outout for vis is", output.cpu().detach().numpy().transpose(1,2,0))
+        plt.savefig('recent.png')
+
+        sys.exit(0)
 
 
-    def save_model(self):
-        torch.save(self.net, 'net.pkl')
-
-    def load_model(self):
-        self.net = torch.load('.\\net.pkl')
 
 
 if __name__ == "__main__":
@@ -202,9 +174,9 @@ if __name__ == "__main__":
                         default='.\\tiny_vorts0008_normalize_dataset')
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=512)  # the paper uses 256 for this one
-    parser.add_argument('--other_dim', type=int, default=3)
     parser.add_argument('--batch_size', type = int, default=4)
     config = parser.parse_args()
 
-    train = Train(config)
-    train.train()
+    test = Test(config)
+
+    test.test()
