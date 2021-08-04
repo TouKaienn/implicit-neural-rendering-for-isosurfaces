@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class Train():
     def __init__(self, config):
-        self.epochs = 1
+        self.epochs = 4000
         self.time = time.time()
         self.batch_size = config.batch_size
         #############################
@@ -33,10 +33,12 @@ class Train():
                              hidden_layers=3, outermost_linear=True)
         else:
             self.load_model()
+            print("load model success")
         self.net.to(device=device)
         self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
+        self.matrix = None
 
     # matrix for x values
     def matrix_x(self, length):
@@ -130,11 +132,17 @@ class Train():
 
     def train_one_img(self, label_img, txt_data, length):
 
+        if self.matrix is None:
+            self.matrix = self.matrix_x_y(length)
+        else:
+            self.matrix = self.matrix
+
+
         # obtain three values (isovalue, alpha, beta)
         v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
 
         # concate matrix to obtain input data
-        input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
+        input_data = self.concat_matrix_2(self.matrix, self.matrix_txt(length, v1, v2, v3))
 
         # prepare input and GT
         ground_truth = label_img
@@ -180,12 +188,13 @@ class Train():
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
         output = output.permute(1, 2, 0) # permute before show
         axes.imshow(output.cpu().detach().numpy())
-        plt.savefig("recent.png")
+        if self.epoch % 200 == 0:
+            plt.savefig("recent" + str(self.epoch) + ".png")
 
 
 
     def save_model(self):
-        torch.save(self.net, 'net.pkl')
+        torch.save(self.net, '.\\net.pkl')
 
     def load_model(self):
         self.net = torch.load('.\\net.pkl', map_location = device)
@@ -195,8 +204,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--input_image', type=str,
-                        default='.\\tiny_vorts0008_normalize_dataset')
-    parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
+                        default='.\\new') # '.\\tiny_vorts0008_normalize_dataset'
+    parser.add_argument('--input_txt', type=str, default='.\\new\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=512)  # the paper uses 256 for this one
     parser.add_argument('--batch_size', type = int, default=1)
     config = parser.parse_args()

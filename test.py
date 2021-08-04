@@ -33,6 +33,8 @@ class Test():
         #self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
+        self.matrix = None
+
     # matrix for x values
     def matrix_x(self, length):
         # create 2d matrix
@@ -41,6 +43,7 @@ class Test():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
+
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -58,6 +61,7 @@ class Test():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
+
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -119,6 +123,11 @@ class Test():
 
     def test_one_img(self, label_img, txt_data, length):
 
+        if self.matrix is None:
+            self.matrix = self.matrix_x_y(length)
+        else:
+            self.matrix = self.matrix
+
         with torch.no_grad():
             # obtain three values (isovalue, alpha, beta)
             v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
@@ -157,12 +166,9 @@ class Test():
 
     def visualize(self, output):
         fig, axes = plt.subplots(1, 1, figsize=(6, 6))
-        #print("output is", output)
-        axes.imshow(output.cpu().detach().numpy().transpose(1,2,0))
-        #print("outout for vis is", output.cpu().detach().numpy().transpose(1,2,0))
-        plt.savefig('recent.png')
-
-        sys.exit(0)
+        output = output.permute(1, 2, 0)  # permute before show
+        axes.imshow(output.cpu().detach().numpy())
+        plt.savefig("recent.png")
 
 
 
@@ -178,5 +184,4 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     test = Test(config)
-
     test.test()
