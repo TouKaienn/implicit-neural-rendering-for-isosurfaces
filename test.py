@@ -33,6 +33,7 @@ class Test():
         #self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
+
     # matrix for x values
     def matrix_x(self, length):
         # create 2d matrix
@@ -41,6 +42,7 @@ class Test():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
+
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -58,6 +60,7 @@ class Test():
         # init tmp value and step number
         tmp = -1
         step_num = length * length - 1
+
         # assign value (-1 to 1, by row and then by col)
         for i in range(length):
             for j in range(length):
@@ -118,7 +121,12 @@ class Test():
 
 
     def test_one_img(self, label_img, txt_data, length):
-
+        
+        if self.matrix is None:
+            self.matrix = self.matrix_x_y(length)
+        else:
+            self.matrix = self.matrix
+        
         with torch.no_grad():
             # obtain three values (isovalue, alpha, beta)
             v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
@@ -178,5 +186,4 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     test = Test(config)
-
     test.test()
