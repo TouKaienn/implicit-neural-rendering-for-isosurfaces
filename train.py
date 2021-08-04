@@ -37,6 +37,7 @@ class Train():
         self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
+        self.matrix = None
 
     # matrix for x values
     def matrix_x(self, length):
@@ -130,11 +131,18 @@ class Train():
 
     def train_one_img(self, label_img, txt_data, length):
 
+        if self.matrix is None:
+            self.matrix = self.matrix_x_y(length)
+        else:
+            self.matrix = self.matrix
+
+            print("self.matrix is", self.matrix)
+
         # obtain three values (isovalue, alpha, beta)
         v1, v2, v3 = txt_data[0], txt_data[1], txt_data[2]
 
         # concate matrix to obtain input data
-        input_data = self.concat_matrix_2(self.matrix_x_y(length), self.matrix_txt(length, v1, v2, v3))
+        input_data = self.concat_matrix_2(self.matrix, self.matrix_txt(length, v1, v2, v3))
 
         # prepare input and GT
         ground_truth = label_img
@@ -198,7 +206,7 @@ if __name__ == "__main__":
                         default='.\\tiny_vorts0008_normalize_dataset')
     parser.add_argument('--input_txt', type=str, default='.\\tiny_vorts0008_normalize_dataset\\vorts0008_infos.txt')
     parser.add_argument('--output_shape', type=int, default=512)  # the paper uses 256 for this one
-    parser.add_argument('--batch_size', type = int, default=1)
+    parser.add_argument('--batch_size', type = int, default=4)
     config = parser.parse_args()
 
     train = Train(config)
