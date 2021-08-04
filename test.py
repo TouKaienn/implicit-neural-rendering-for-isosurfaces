@@ -33,6 +33,7 @@ class Test():
         #self.optimizer = torch.optim.Adam(lr=1e-4, params=self.net.parameters())
         self.loss_fuc = MSELoss()
         self.loss = None
+        self.matrix = None
 
     # matrix for x values
     def matrix_x(self, length):
