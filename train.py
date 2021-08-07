@@ -5,6 +5,8 @@ from model import *
 from data.TrainDataset import *
 from option import *
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 from tqdm import tqdm
 from torch.nn import MSELoss
 import time
@@ -16,17 +18,18 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Trainer():
     def __init__(self):
-        self.epochs = 1e4
+        self.epochs = 1000
         self.time = time.time()
         self.batch_size = config.batch_size
         #############################
         data = TrainDataset(config.save_txt_root_path,
                             config.input_image,reload_bool=True,sidelen=512)
-        self.input_data_FilePath=data.input_data_FilePath
+        #self.input_data_FilePath=data.input_data_FilePath
         self.dataloader = DataLoader(data, batch_size=self.batch_size)
-        if not os.path.exists('.\\net.pkl') or True:
-            self.net = Siren(in_features=5, out_features=3, hidden_features=50,
-                             hidden_layers=3, outermost_linear=True)
+        #if not os.path.exists('.\\net.pkl') or True:
+        if not os.path.exists('.\\net.pkl'):
+            self.net = Siren(in_features=81, out_features=3, hidden_features=50,
+                             hidden_layers=3, outermost_linear=True)  # in_features changed to 81 after pos_encoding. Original is 5
         else:
             self.load_model()
         self.losses=[]
@@ -38,7 +41,7 @@ class Trainer():
 
     def train(self):
         print("Start Training:")
-        self.img_buffer=[]
+        #self.img_buffer=[]
         for epoch in tqdm(range(int(self.epochs))):
             self.epoch = epoch
             for save_count, data in enumerate(self.dataloader):
@@ -97,7 +100,7 @@ class Trainer():
             return (a.float().to(device) for a in args)
     
     def save_model(self):
-        torch.save(self.net, 'net.pkl')
+        torch.save(self.net, '.\\net.pkl')
 
     def load_model(self):
         self.net = torch.load('.\\net.pkl')
