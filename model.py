@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
 from collections import OrderedDict
 import numpy as np
+from pos_encode import PosEncodingNeRF
+import sys
 
 
 class Siren(nn.Module):
@@ -14,6 +16,10 @@ class Siren(nn.Module):
                  out_features, outermost_linear=False,
                  first_omega_0=30, hidden_omega_0=30.):
         super().__init__()
+
+        # positional encoding
+        self.positional_encoding_xy = PosEncodingNeRF(in_features = 2, num_frequencies= 4) # 2, 4
+        self.positional_encoding_values = PosEncodingNeRF(in_features = 3, num_frequencies= 10) # 3, 10
 
         self.net = []
         # first SineLayer
@@ -42,8 +48,16 @@ class Siren(nn.Module):
 
     def forward(self, coords):
         coords = coords.clone().detach().requires_grad_(True)  # allows to take derivative w.r.t. input
+        #print("coords.size before cat", coords.size())
+
+        # positional encoding on value and coordinates
+        coords_value = self.positional_encoding_values(coords[..., :3]) # first three values
+        coords_xy = self.positional_encoding_xy(coords[..., 3:]) # last two coords
+        coords = torch.cat((coords_value, coords_xy), dim = -1) # concat in the last dim
+        #print("coords.size after cat", coords.size())
+
         output = self.net(coords)
-        output = torch.sigmoid(output)
+        output = torch.sigmoid(output)  # This is important -> scale to [0, 1]
         return output, coords
 
     def forward_with_activations(self, coords, retain_grad=False):
