@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import torch
 import skimage
 import torch
@@ -7,43 +8,68 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
 from collections import OrderedDict
 import numpy as np
+from pos_encode import PosEncodingNeRF
+import sys
 
 
 class Siren(nn.Module):
     def __init__(self, in_features, hidden_features, hidden_layers,
-                 out_features, outermost_linear=False,
+                 out_features, outermost_linear=False, use_residual = True,
                  first_omega_0=30, hidden_omega_0=30.):
         super().__init__()
 
-        self.net = []
+        # hidden layer numbers
+        self.hidden_layers = hidden_layers
+        self.outermost_linear = outermost_linear
+        self.use_residual = use_residual
+
+        # positional encoding
+        self.positional_encoding_xy = PosEncodingNeRF(in_features = 2, num_frequencies= 4) # 2, 4
+        self.positional_encoding_values = PosEncodingNeRF(in_features = 3, num_frequencies= 10) # 3, 10
+
         # first SineLayer
-        self.net.append(SineLayer(in_features, hidden_features,
-                                  is_first=True, omega_0=first_omega_0))
-
+        self.sine_first = SineLayer(in_features, hidden_features,
+                                  is_first=True, omega_0=first_omega_0)
         # Subsequent SineLayer
-        for i in range(hidden_layers):
-            self.net.append(SineLayer(hidden_features, hidden_features,
-                                      is_first=False, omega_0=hidden_omega_0))
+        self.sine_subsequent = SineLayer(hidden_features, hidden_features,
+                                      is_first=False, omega_0=hidden_omega_0)
+        # Final Layer (Linear)
+        self.linear_final = nn.Linear(hidden_features, out_features)
+        with torch.no_grad():
+            self.linear_final.weight.uniform_(-np.sqrt(6 / hidden_features) / hidden_omega_0,
+                                         np.sqrt(6 / hidden_features) / hidden_omega_0) # rewrite this as a function (if needed)
+        # Final Layer (SineLayer)
+        self.sine_final = SineLayer(hidden_features, out_features,
+                                      is_first=False, omega_0=hidden_omega_0)
 
-        # Final Layer (Linear or SineLayer)
-        if outermost_linear:
-            final_linear = nn.Linear(hidden_features, out_features)
 
-            with torch.no_grad():
-                final_linear.weight.uniform_(-np.sqrt(6 / hidden_features) / hidden_omega_0,
-                                             np.sqrt(6 / hidden_features) / hidden_omega_0)
+    def coordinate(self, coords):
+        coords = coords.clone().detach().requires_grad_(True)  # allows to take derivative w.r.t. input
 
-            self.net.append(final_linear)
-        else:
-            self.net.append(SineLayer(hidden_features, out_features,
-                                      is_first=False, omega_0=hidden_omega_0))
-        
-        self.net = nn.Sequential(*self.net)
+        # positional encoding on value and coordinates
+        coords_value = self.positional_encoding_values(coords[..., :3])  # first three values
+        coords_xy = self.positional_encoding_xy(coords[..., 3:])  # last two coords
+        coords = torch.cat((coords_value, coords_xy), dim=-1)  # concat in the last dim
+
+        return coords
 
     def forward(self, coords):
-        coords = coords.clone().detach().requires_grad_(True)  # allows to take derivative w.r.t. input
-        output = self.net(coords)
-        output = torch.sigmoid(output)
+
+        x = self.coordinate(coords)
+        x = self.sine_first(x)
+
+        for i in range(self.hidden_layers):
+            if self.use_residual:
+                x = x + self.sine_subsequent(x)
+            else:
+                x = self.sine_subsequent(x)
+
+        if self.outermost_linear:
+            x = self.linear_final(x)
+        else:
+            x = self.sine_final(x)
+
+        output = torch.sigmoid(x)  # This is important -> scale to [0, 1]
         return output, coords
 
     def forward_with_activations(self, coords, retain_grad=False):
