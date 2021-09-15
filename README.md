@@ -1,10 +1,13 @@
 # implicit-neural-rendering-for-isosurfaces
 This is a Pytorch implementation for our project "Implicit Neural Rendering For Isosurfaces".
 
+# Short Summary
+This project aims to develop a fully convolutional neural network with [Siren](https://arxiv.org/abs/2006.09661) activation function to render isosurfaces with three parameters, including image resolution, viewpoints and isovalue.
+
 # Pre-requisites
--Windows/Linux
--Python3
--CPU/GPU+CUDA+CUDNN
+1. Windows/Linux
+2. Python3
+3. CPU/GPU+CUDA+CUDNN
 
 # Get Started
 TODO
@@ -15,6 +18,10 @@ TODO
 # Test
 TODO
 
+# Hyperparameters
+
 # Citation 
 TODO
 
+# Recommended Readings
+Please refers to our archieved [repository](https://github.com/ShenZheng2000/Isosurface-Rendering) for recommended papers about this topic. 
