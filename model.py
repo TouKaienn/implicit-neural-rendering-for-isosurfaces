@@ -138,16 +138,17 @@ class ResBlock(nn.Module):
 
     
 class Siren(nn.Module):
-    def __init__(self, in_features=5,
-                 init_features=256,
-                 hidden_layers=15,
-                 out_features=3,
-                 is_final_linear=True,
-                 is_final_res = True,
+    def __init__(self,
+                 in_features=config.in_features,
+                 init_features=config.init_features,
+                 hidden_layers=config.num_res,
+                 out_features=config.out_features,
+                 is_final_linear=config.is_final_linear,
+                 is_final_res = config.is_final_res,
                  first_omega_0=30,
                  hidden_omega_0=30.,
-                 is_pos_encode = False,
-                 innermost_res = True):
+                 is_pos_encode = config.is_pos_encode,
+                 innermost_res = config.innermost_res):
         super().__init__()
         
         self.is_pos_encode = is_pos_encode
