@@ -2,7 +2,7 @@
 This is a Pytorch implementation for our project "Implicit Neural Rendering For Isosurfaces".
 
 # Short Summary
-This project aims to develop a fully convolutional neural network with [Siren](https://arxiv.org/abs/2006.09661) activation function to render isosurfaces with three groups of parameters, including image resolution, (two) viewpoints and isovalue.
+This project aims to develop a fully convolutional neural network with [Siren](https://arxiv.org/abs/2006.09661) activation function to render isosurfaces with three groups of parameters, including image resolution, (two) viewpoints and isovalue. 
 
 # Sample Results
 
@@ -12,7 +12,7 @@ This project aims to develop a fully convolutional neural network with [Siren](h
 3. CPU/GPU+CUDA+CUDNN
 
 # Prepare Dataset
-For the training and testing images (2021.9.20 version), download from [BaiduYun](https://pan.baidu.com/s/12LnBpCqz4mlI_BohBoogQw) with code `o7ad`. After that, unzip the files and put the training images and testing images at `/data/train_data` and `/data/test_data`, respectively. For each folder (train or test), there will be a txt file with numbers of png files. 
+The training and testing images (2021.9.20 version) can be downloaded from [BaiduYun](https://pan.baidu.com/s/12LnBpCqz4mlI_BohBoogQw) with code `o7ad`. After that, unzip the files and put the training images at `/data/train_data` and testing images at `/data/test_data`. For each folder (train or test), there will be one txt file with numbers of png files. 
 
 # Train
 Run the following command in terminal 
