@@ -23,12 +23,15 @@ parser.add_argument('--train_weight', type = str, default='net.pkl') # weight fi
 parser.add_argument('--use_scheduler', type = bool, default=True)
 
 # This is for the model
-parser.add_argument('--outermost_linear', type = bool, default=True)
-parser.add_argument('--use_residual', type = bool, default=True)
+parser.add_argument('--is_final_linear', type = bool, default=True)
+parser.add_argument('--is_final_res', type = bool, default=True)
 parser.add_argument('--in_features', type = int, default=5)
 parser.add_argument('--out_features', type = int, default=3)
 parser.add_argument('--init_features', type = int, default=256) # original is 128
-parser.add_argument('--num_res', type = int, default=10) # original is 10
+parser.add_argument('--num_res', type = int, default=15) # original is 10
+parser.add_argument('--is_pos_encode', type = bool, default=False)
+parser.add_argument('--innermost_res', type = bool, default=True)
+
 
 
 # This is for testing parameters
