@@ -17,12 +17,16 @@ The training and testing images (2021.9.20 version) can be downloaded from [Baid
 # Train
 Run the following command in terminal 
 
-```python main.py --train_test train```
+```
+python main.py --train_test train
+```
 
 # Test
 Run the following command in terminal 
 
-```python main.py --train_test test```
+```
+python main.py --train_test test
+```
 
 # Output Files
 The output files consists of the following. 
